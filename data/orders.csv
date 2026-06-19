@@ -1,0 +1,4 @@
+order_id,product_name,quantity,supplier_name,total_cost,status,date
+ORD-001,Industrial Laptop,10,GlobalTech Supplies,3855.00,Completed,2026-06-01
+ORD-002,Server Rack Unit,5,Apex Logistics,2050.00,Pending,2026-06-10
+ORD-003,Fiber Optic Cable 100m,20,Nexus Electronics,7900.00,Approved,2026-06-14

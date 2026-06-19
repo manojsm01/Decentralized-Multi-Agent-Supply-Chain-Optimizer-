@@ -1,0 +1,5 @@
+rfq_id,product_name,quantity,target_price,status
+RFQ-101,Industrial Laptop,50,350.0,Sent
+RFQ-102,Graphics Card RTX 4090,20,1500.0,Closed
+RFQ-103,SSD 2TB NVMe,100,120.0,Reviewing
+RFQ-104,mobile,1,13000.0,Sent

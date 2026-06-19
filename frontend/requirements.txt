@@ -1,0 +1,7 @@
+streamlit==1.32.2
+requests==2.31.0
+pandas==2.2.1
+streamlit-option-menu==0.3.13
+plotly==5.20.0
+fpdf2
+openpyxl

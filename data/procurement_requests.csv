@@ -1,0 +1,5 @@
+pr_id,product_name,quantity,department,status
+PR-201,Server Rack Unit,10,IT Infrastructure,Approved
+PR-202,Cisco Router ASR,2,Networking,Pending
+PR-203,Industrial Laptop,5,Engineering,Rejected
+PR-204,laptop,1,IT,Pending

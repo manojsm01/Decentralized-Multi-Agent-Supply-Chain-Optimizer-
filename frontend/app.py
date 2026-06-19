@@ -600,9 +600,13 @@ elif selected == "Supply Chain Workflow":
                         c2.markdown(f"<div class='metric-card'><div class='metric-title'>Selected Supplier</div><div class='metric-value' style='font-size: 1.5rem;'>{data['selected_supplier']}</div></div>", unsafe_allow_html=True)
                         c3.markdown(f"<div class='metric-card'><div class='metric-title'>Risk Level</div><div class='metric-value' style='font-size: 1.5rem; color:#F59E0B;'>{data['risk_level']}</div></div>", unsafe_allow_html=True)
                         
-                        st.info(f"**Inventory Context:** {data['inventory_analysis']}")
-                        st.info(f"**Logistics Route:** {data['recommended_route']}")
-                        st.success(f"**Final Recommendation:** {data['procurement_summary']}")
+                        inv_analysis = str(data.get('inventory_analysis', '')).replace('$', '\\$')
+                        rec_route = str(data.get('recommended_route', '')).replace('$', '\\$')
+                        proc_summary = str(data.get('procurement_summary', '')).replace('$', '\\$')
+                        
+                        st.info(f"**Inventory Context:** {inv_analysis}")
+                        st.info(f"**Logistics Route:** {rec_route}")
+                        st.success(f"**Final Recommendation:** {proc_summary}")
                     else:
                         st.error("API error or quota exceeded. Please try again later.")
                 except requests.exceptions.RequestException:

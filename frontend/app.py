@@ -491,6 +491,67 @@ elif selected == "Dashboard":
         else:
             st.info("No inventory data available.")
 
+    st.markdown("<h3 style='color: var(--text-color); margin-top: 2rem; margin-bottom: 1rem;'>Advanced Analytics</h3>", unsafe_allow_html=True)
+    adv1, adv2 = st.columns([1, 1])
+    
+    with adv1:
+        if suppliers:
+            df_sup = pd.DataFrame(suppliers)
+            fig_bubble = go.Figure(go.Scatter(
+                x=df_sup['delivery_days'], y=df_sup['price'],
+                mode='markers',
+                marker=dict(size=df_sup['rating']*10, color='#00D4FF', opacity=0.7, line=dict(width=1, color='#FFFFFF')),
+                text=df_sup['name'],
+                hovertemplate="<b>%{text}</b><br>Delivery: %{x} days<br>Price: $%{y}<br>Rating: %{marker.size}<extra></extra>"
+            ))
+            fig_bubble.update_layout(title=dict(text="Supplier Efficiency Matrix", font=dict(size=16, color=None, family="Inter")),
+                                     xaxis_title="Delivery Days", yaxis_title="Price ($)",
+                                     paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=20, r=20, t=60, b=40), height=400, xaxis=dict(showgrid=False), yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)'))
+            st.plotly_chart(fig_bubble, use_container_width=True, config={'displayModeBar': False})
+        else:
+            st.info("No supplier data for matrix.")
+            
+    with adv2:
+        if inventory:
+            df_inv_full = pd.DataFrame(inventory).sort_values(by='stock_level', ascending=True)
+            colors_inv = ['#EF4444' if int(v) < 50 else '#F59E0B' if int(v) < 150 else '#10B981' for v in df_inv_full['stock_level']]
+            fig_inv_risk = go.Figure(go.Bar(x=df_inv_full['product_name'], y=df_inv_full['stock_level'], marker_color=colors_inv))
+            fig_inv_risk.update_layout(title=dict(text="Inventory Risk Assessment", font=dict(size=16, color=None, family="Inter")),
+                                     paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=20, r=20, t=60, b=40), height=400, xaxis=dict(showgrid=False), yaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.1)'))
+            st.plotly_chart(fig_inv_risk, use_container_width=True, config={'displayModeBar': False})
+        else:
+            st.info("No inventory data for risk assessment.")
+            
+    if not df_orders.empty and suppliers:
+        st.markdown("<h4 style='color: var(--text-color); margin-top: 1rem; margin-bottom: 1rem;'>Procurement Capital Flow</h4>", unsafe_allow_html=True)
+        products = list(df_orders['product_name'].unique()) if 'product_name' in df_orders.columns else []
+        if products:
+            supplier_names = list(df_orders['supplier_name'].unique())
+            statuses = list(df_orders['status'].unique())
+            
+            nodes = products + supplier_names + statuses
+            node_indices = {name: i for i, name in enumerate(nodes)}
+            
+            sources = []
+            targets = []
+            values = []
+            
+            for _, row in df_orders.iterrows():
+                sources.append(node_indices[row['product_name']])
+                targets.append(node_indices[row['supplier_name']])
+                values.append(row['total_cost'])
+                
+                sources.append(node_indices[row['supplier_name']])
+                targets.append(node_indices[row['status']])
+                values.append(row['total_cost'])
+                
+            fig_sankey = go.Figure(data=[go.Sankey(
+                node = dict(pad=15, thickness=20, line=dict(color="rgba(255,255,255,0.2)", width=0.5), label=nodes, color="#00D4FF"),
+                link = dict(source=sources, target=targets, value=values, color="rgba(0, 212, 255, 0.3)")
+            )])
+            fig_sankey.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', margin=dict(l=20, r=20, t=40, b=20), height=400, font=dict(color="#FFFFFF"))
+            st.plotly_chart(fig_sankey, use_container_width=True, config={'displayModeBar': False})
+
 elif selected == "Demand Forecasting":
     st.markdown("<h2>Demand Forecasting (Forecast Agent)</h2>", unsafe_allow_html=True)
     with st.form("forecast_form"):

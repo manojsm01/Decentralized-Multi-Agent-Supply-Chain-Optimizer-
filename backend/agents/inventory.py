@@ -20,7 +20,7 @@ def run_inventory_agent(product_name: str, required_quantity: int, current_stock
         goal='Analyze the current stock levels and determine if procurement is necessary.',
         backstory='You are an expert supply chain inventory manager. You ensure that stock levels meet demand without overstocking.',
         llm=llm,
-        verbose=True
+        max_iter=2, max_execution_time=20, verbose=True
     )
     
     task = Task(
@@ -31,7 +31,7 @@ def run_inventory_agent(product_name: str, required_quantity: int, current_stock
         agent=agent
     )
     
-    crew = Crew(agents=[agent], tasks=[task], verbose=False)
+    crew = Crew(agents=[agent], tasks=[task], max_iter=2, max_execution_time=20, verbose=False)
     
     shortage = max(0, required_quantity - current_stock)
     
@@ -44,7 +44,7 @@ def run_inventory_agent(product_name: str, required_quantity: int, current_stock
     except Exception as e:
         error_msg = str(e)
         if "429" in error_msg or "quota" in error_msg.lower():
-            analysis = "Gemini API quota exceeded. Please try again later. Using simple mathematical fallback."
+            analysis = "NVIDIA API quota exceeded. Please try again later. Using simple mathematical fallback."
         else:
             analysis = f"AI Analysis temporarily unavailable: {error_msg}. Using simple mathematical fallback."
         return {"needs_procurement": shortage > 0, "quantity_to_order": shortage, "analysis": analysis}

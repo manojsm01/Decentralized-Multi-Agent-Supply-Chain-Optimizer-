@@ -5,16 +5,16 @@ from backend.workflow.graph import build_workflow
 
 app_workflow = build_workflow()
 
-def run_optimization(db: Session, request: OptimizationRequest) -> OptimizationResponse:
+def run_optimization(db: Session, request: OptimizationRequest, org: str) -> OptimizationResponse:
     # 1. Fetch data from DB
-    inv = get_inventory(db, request.product_name)
+    inv = get_inventory(db, request.product_name, org)
     current_stock = inv.stock_level if inv else 0
     
-    suppliers = get_suppliers(db)
+    suppliers = get_suppliers(db, org)
     # Limit to top 10 suppliers to prevent massive LLM payloads
     suppliers_data = [{"name": s.name, "price": s.price, "delivery_days": s.delivery_days, "rating": s.rating} for s in suppliers][:10]
     
-    routes = get_routes(db)
+    routes = get_routes(db, org)
     # Limit to top 10 routes
     routes_data = [{"name": r.name, "distance_km": r.distance_km} for r in routes][:10]
     
@@ -48,7 +48,7 @@ def run_optimization(db: Session, request: OptimizationRequest) -> OptimizationR
         "total_cost": proc_res.get("total_cost", 0.0),
         "status": proc_res.get("recommendation", "Unknown")
     }
-    create_procurement_history(db, history_data)
+    create_procurement_history(db, history_data, org)
     
     # 6. Return Response
     return OptimizationResponse(

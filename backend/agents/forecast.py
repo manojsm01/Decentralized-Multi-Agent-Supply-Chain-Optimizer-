@@ -20,7 +20,7 @@ def run_forecast_agent(product_name: str, quantity: int) -> dict:
         goal='Predict future demand and recommend adjustments to the ordered quantity.',
         backstory='You are an expert demand forecaster. You analyze trends to ensure optimal stock levels are maintained.',
         llm=llm,
-        verbose=True
+        max_iter=2, max_execution_time=20, verbose=True
     )
     
     task = Task(
@@ -31,7 +31,7 @@ def run_forecast_agent(product_name: str, quantity: int) -> dict:
         agent=agent
     )
     
-    crew = Crew(agents=[agent], tasks=[task], verbose=False)
+    crew = Crew(agents=[agent], tasks=[task], max_iter=2, max_execution_time=20, verbose=False)
     
     try:
         result = str(crew.kickoff())
@@ -42,7 +42,7 @@ def run_forecast_agent(product_name: str, quantity: int) -> dict:
     except Exception as e:
         error_msg = str(e)
         if "429" in error_msg or "quota" in error_msg.lower():
-            analysis = "Gemini API quota exceeded. Please try again later. Proceeding with requested quantity."
+            analysis = "NVIDIA API quota exceeded. Please try again later. Proceeding with requested quantity."
         else:
             analysis = f"AI Analysis temporarily unavailable: {error_msg}"
         return {"quantity_to_order": quantity, "analysis": analysis}

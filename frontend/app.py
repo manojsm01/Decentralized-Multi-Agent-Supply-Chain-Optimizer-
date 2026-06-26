@@ -13,57 +13,121 @@ API_URL = os.getenv("API_URL", "http://127.0.0.1:8000")
 # 1. PAGE CONFIG
 st.set_page_config(page_title="AI Supply Chain Optimizer", layout="wide", initial_sidebar_state="expanded")
 
-# Initialize session state for navigation
+
+# Initialize session state for navigation and auth
 if 'selected_page' not in st.session_state:
     st.session_state.selected_page = "Home"
+if 'access_token' not in st.session_state:
+    st.session_state.access_token = None
+if 'user' not in st.session_state:
+    st.session_state.user = None
+
+# ----------------- AUTHENTICATION -----------------
+def login(username, password):
+    try:
+        resp = requests.post(f"{API_URL}/api/auth/login", data={"username": username, "password": password})
+        if resp.status_code == 200:
+            token_data = resp.json()
+            st.session_state.access_token = token_data['access_token']
+            
+            user_resp = requests.get(f"{API_URL}/api/users/me", headers={"Authorization": f"Bearer {st.session_state.access_token}"})
+            if user_resp.status_code == 200:
+                st.session_state.user = user_resp.json()
+            return True
+        return False
+    except Exception as e:
+        return False
+
+def logout():
+    st.session_state.access_token = None
+    st.session_state.user = None
+    st.rerun()
+
+def get_auth_headers():
+    if st.session_state.access_token:
+        return {"Authorization": f"Bearer {st.session_state.access_token}"}
+    return {}
+
+if not st.session_state.access_token:
+    st.markdown("<div style='text-align: center;'><img src='https://cdn-icons-png.flaticon.com/512/2830/2830305.png' width='80'></div>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align: center; padding-top: 4rem;'>Welcome to Supply Chain Optimizer</h2>", unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns([1,2,1])
+    with col2:
+        with st.form("login_form"):
+            username = st.text_input("Username")
+            password = st.text_input("Password", type="password")
+            submit = st.form_submit_button("Login", use_container_width=True)
+            if submit:
+                if login(username, password):
+                    st.success("Login successful!")
+                    st.rerun()
+                else:
+                    st.error("Invalid username or password, or API is offline.")
+    st.stop()
+# --------------------------------------------------
+
 
 # 2. CUSTOM CSS - Enterprise Theme
 st.markdown("""
 <style>
-/* Enterprise Theme */
+/* Glassmorphism Theme */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 .stApp {
-    color: var(--text-color);
+    color: #FFFFFF;
     font-family: 'Inter', sans-serif;
+    background: linear-gradient(135deg, #0B1220 0%, #131C31 100%);
+}
+[data-testid="stHeader"] {
+    background-color: transparent;
 }
 [data-testid="stSidebar"] {
-    border-right: 1px solid var(--background-color);
+    background-color: rgba(19, 28, 49, 0.6) !important;
+    backdrop-filter: blur(20px);
+    border-right: 1px solid rgba(255,255,255,0.15);
     padding-top: 1rem;
 }
 .custom-header {
-    background: linear-gradient(135deg, #0F3057 0%, #1A4F8E 100%);
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.15);
     color: white;
     padding: 2.5rem 2rem;
-    border-radius: 12px;
+    border-radius: 24px;
     margin-bottom: 2rem;
-    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+    box-shadow: 0 10px 30px -5px rgba(0,0,0,0.5);
 }
 .custom-header h1 {
     color: white;
     margin: 0;
-    font-size: 2rem;
+    font-size: 2.2rem;
     font-weight: 700;
 }
 .custom-header p {
-    color: #E2E8F0;
+    color: #BFC7D5;
     font-size: 1.1rem;
     margin-top: 0.5rem;
 }
 .metric-card {
-    background-color: var(--secondary-background-color);
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     padding: 1.5rem;
-    border-radius: 12px;
-    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+    border-radius: 18px;
+    box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3);
     margin-bottom: 1.5rem;
-    border: 1px solid var(--background-color);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: 1px solid rgba(255,255,255,0.15);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 .metric-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.08);
+    transform: translateY(-4px);
+    box-shadow: 0 15px 35px -5px rgba(0,0,0,0.5);
+    border: 1px solid rgba(255,255,255,0.25);
 }
 .metric-title {
-    color: var(--text-color);
-    opacity: 0.8;
+    color: #BFC7D5;
     font-size: 0.9rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -71,45 +135,50 @@ st.markdown("""
     margin-bottom: 0.5rem;
 }
 .metric-value {
-    color: var(--text-color);
-    font-size: 2rem;
+    color: #FFFFFF;
+    font-size: 2.2rem;
     font-weight: 700;
 }
-.metric-change.positive { color: #10B981; }
+.metric-change.positive { color: #22C55E; }
 .metric-change.negative { color: #EF4444; }
 [data-testid="stPlotlyChart"] {
-    background-color: var(--secondary-background-color);
-    border-radius: 12px;
-    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-radius: 18px;
+    box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3);
     padding: 1rem;
     margin-bottom: 1.5rem;
-    border: 1px solid var(--background-color);
+    border: 1px solid rgba(255,255,255,0.15);
 }
 .stButton>button {
-    border-radius: 8px;
+    border-radius: 12px;
     font-weight: 600;
-    transition: all 0.2s;
-    background-color: var(--secondary-background-color);
-    color: var(--text-color);
-    border: 1px solid var(--background-color);
+    transition: all 0.3s ease;
+    background: rgba(255,255,255,0.08) !important;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    color: #FFFFFF !important;
+    border: 1px solid rgba(255,255,255,0.15) !important;
 }
 .stButton>button[kind="primary"] {
-    background-color: #F97316 !important;
+    background: linear-gradient(135deg, #00D4FF 0%, #0077FF 100%) !important;
     color: white !important;
-    border: none;
+    border: none !important;
+    box-shadow: 0 4px 15px rgba(0, 212, 255, 0.4);
 }
 .stButton>button:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+    border: 1px solid rgba(255,255,255,0.3) !important;
 }
 </style>
 """, unsafe_allow_html=True)
 
 # Cache API requests to avoid redundant calls
-@st.cache_data(ttl=60)
 def fetch_data(endpoint):
     try:
-        r = requests.get(f"{API_URL}/{endpoint}")
+        r = requests.get(f"{API_URL}/{endpoint}", headers=get_auth_headers())
         if r.status_code == 200:
             return r.json()
     except Exception as e:
@@ -130,7 +199,8 @@ health_data = fetch_health()
 
 # 3. SIDEBAR NAVIGATION
 with st.sidebar:
-    st.markdown("<div style='text-align:center; padding-bottom: 1rem;'><h2 style='color: var(--text-color); font-weight: 700; margin-bottom: 0;'>SC Optimizer</h2><span style='color: var(--text-color); font-size: 0.8rem;'>Enterprise Edition</span></div>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align:center; padding-bottom: 1rem;'><img src='https://cdn-icons-png.flaticon.com/512/2830/2830305.png' width='50'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align:center; padding-bottom: 1rem;'><h2 style='color: var(--text-color); font-weight: 700; margin-bottom: 0;'>Supply Chain Optimizer</h2><span style='color: var(--text-color); font-size: 0.8rem;'>Enterprise Edition</span></div>", unsafe_allow_html=True)
     
     # Grouped options with emojis
     options = [
@@ -152,8 +222,14 @@ with st.sidebar:
         "🔄 Supply Chain Workflow", 
         "📉 Analytics", 
         "📂 Data Management", 
-        "⚙️ Settings"
+        "⚙️ Settings",
+        "🛡️ Admin Panel"
     ]
+
+    if st.session_state.user.get('role') != 'admin':
+        if "🛡️ Admin Panel" in options:
+            options.remove("🛡️ Admin Panel")
+
     
     # Map back to original IDs for logic
     page_map = {
@@ -172,7 +248,8 @@ with st.sidebar:
         "🔄 Supply Chain Workflow": "Supply Chain Workflow",
         "📉 Analytics": "Analytics",
         "📂 Data Management": "Data Management",
-        "⚙️ Settings": "Settings"
+        "⚙️ Settings": "Settings",
+        "🛡️ Admin Panel": "Admin Panel"
     }
 
     # Find current index for initialization
@@ -210,6 +287,12 @@ with st.sidebar:
             
     selected = st.session_state.selected_page
     
+        
+    st.markdown("---")
+    st.markdown(f"<div style='font-size:0.8rem; font-weight:600; color: var(--text-color);'>Logged in as: {st.session_state.user['username']} ({st.session_state.user['role']})</div>", unsafe_allow_html=True)
+    if st.button("Logout", use_container_width=True):
+        logout()
+
     st.markdown("---")
     st.markdown("<div style='font-size:0.8rem; font-weight:600; color: var(--text-color); text-transform:uppercase; margin-bottom:0.5rem;'>System Health</div>", unsafe_allow_html=True)
     
@@ -309,8 +392,6 @@ if selected == "Home":
             st.rerun()
 
 elif selected == "Dashboard":
-    st.markdown("<div style='display: flex; justify-content: space-between; align-items: center; padding: 1rem 0 2rem 0;'><h2 style='color: var(--text-color); font-weight: 700; margin: 0;'>Command Center</h2><div style='background-color: var(--secondary-background-color); padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid var(--background-color); color: var(--text-color); font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.02);'>📥 Export Report</div></div>", unsafe_allow_html=True)
-
     # Fetch live data
     orders = fetch_data("api/orders")
     inventory = fetch_data("inventory")
@@ -324,6 +405,14 @@ elif selected == "Dashboard":
     total_orders = len(orders)
     active_suppliers = len(suppliers)
     low_stock_items = len([i for i in inventory if int(i.get('stock_level', 0)) < 50]) if inventory else 0
+
+    col1, col2 = st.columns([4, 1])
+    with col1:
+        st.markdown("<h2 style='color: var(--text-color); font-weight: 700; margin: 0; padding: 0.5rem 0 2rem 0;'>Command Center</h2>", unsafe_allow_html=True)
+    with col2:
+        st.write("") # Spacer
+        summary_df = pd.DataFrame([{"Metric": "Total Spend", "Value": f"${total_spend:,.2f}"}, {"Metric": "Total Orders", "Value": total_orders}, {"Metric": "Active Suppliers", "Value": active_suppliers}, {"Metric": "Low Stock Items", "Value": low_stock_items}])
+        st.download_button(label="📥 Export Report", data=summary_df.to_csv(index=False), file_name="dashboard_summary.csv", mime="text/csv", use_container_width=True)
     total_inventory_items = len(inventory) if inventory else 0
     active_routes = len(routes) if routes else 0
     ai_recs = len(history) if history else 0
@@ -412,7 +501,7 @@ elif selected == "Demand Forecasting":
     if submit_button:
         with st.spinner("Analyzing demand trends..."):
             try:
-                resp = requests.post(f"{API_URL}/api/forecast", json={"product_name": product_name, "quantity": quantity}, timeout=15)
+                resp = requests.post(f"{API_URL}/api/forecast", json={"product_name": product_name, "quantity": quantity}, timeout=90, headers=get_auth_headers())
                 if resp.status_code == 200:
                     data = resp.json()
                     st.success("Analysis Complete")
@@ -421,7 +510,7 @@ elif selected == "Demand Forecasting":
                 else:
                     st.error("API error or quota exceeded. Please try again later.")
             except requests.exceptions.RequestException:
-                st.error("Connection timed out. Gemini API quota exceeded or backend unavailable.")
+                st.error("Connection timed out. NVIDIA API quota exceeded or backend unavailable.")
 
 elif selected == "Supplier Management":
     st.markdown("<h2>Supplier Management (Supplier Agent)</h2>", unsafe_allow_html=True)
@@ -441,7 +530,7 @@ elif selected == "Supplier Management":
     if submit_button:
         with st.spinner("Finding best supplier..."):
             try:
-                resp = requests.post(f"{API_URL}/api/suppliers/recommend", json={"required_delivery_days": required_delivery_days}, timeout=15)
+                resp = requests.post(f"{API_URL}/api/suppliers/recommend", json={"required_delivery_days": required_delivery_days}, timeout=90, headers=get_auth_headers())
                 if resp.status_code == 200:
                     data = resp.json()
                     st.success(f"Recommended Supplier: {data.get('selected_supplier_name')}")
@@ -452,7 +541,7 @@ elif selected == "Supplier Management":
                 else:
                     st.error("API error or quota exceeded. Please try again later.")
             except requests.exceptions.RequestException:
-                st.error("Connection timed out. Gemini API quota exceeded or backend unavailable.")
+                st.error("Connection timed out. NVIDIA API quota exceeded or backend unavailable.")
 
 elif selected == "Inventory Monitoring":
     st.markdown("<h2>Inventory Monitoring (Inventory Agent)</h2>", unsafe_allow_html=True)
@@ -474,7 +563,7 @@ elif selected == "Inventory Monitoring":
     if submit_button:
         with st.spinner("Analyzing inventory..."):
             try:
-                resp = requests.post(f"{API_URL}/api/inventory/analyze", json={"product_name": product_name, "required_quantity": required_quantity, "current_stock": current_stock}, timeout=15)
+                resp = requests.post(f"{API_URL}/api/inventory/analyze", json={"product_name": product_name, "required_quantity": required_quantity, "current_stock": current_stock}, timeout=90, headers=get_auth_headers())
                 if resp.status_code == 200:
                     data = resp.json()
                     st.metric("Quantity to Order", data.get("quantity_to_order"))
@@ -482,7 +571,7 @@ elif selected == "Inventory Monitoring":
                 else:
                     st.error("API error or quota exceeded. Please try again later.")
             except requests.exceptions.RequestException:
-                st.error("Connection timed out. Gemini API quota exceeded or backend unavailable.")
+                st.error("Connection timed out. NVIDIA API quota exceeded or backend unavailable.")
 
 elif selected == "Route Optimization":
     st.markdown("<h2>Route Optimization (Route Agent)</h2>", unsafe_allow_html=True)
@@ -493,7 +582,7 @@ elif selected == "Route Optimization":
     if submit_button:
         with st.spinner("Optimizing logistics..."):
             try:
-                resp = requests.post(f"{API_URL}/api/routes/optimize", json={"destination": destination}, timeout=15)
+                resp = requests.post(f"{API_URL}/api/routes/optimize", json={"destination": destination}, timeout=90, headers=get_auth_headers())
                 if resp.status_code == 200:
                     data = resp.json()
                     st.success(f"Best Route: {data.get('recommended_route_name')}")
@@ -501,7 +590,7 @@ elif selected == "Route Optimization":
                 else:
                     st.error("API error or quota exceeded. Please try again later.")
             except requests.exceptions.RequestException:
-                st.error("Connection timed out. Gemini API quota exceeded or backend unavailable.")
+                st.error("Connection timed out. NVIDIA API quota exceeded or backend unavailable.")
 
 elif selected == "Risk Analysis":
     st.markdown("<h2>Risk Analysis (Risk Agent)</h2>", unsafe_allow_html=True)
@@ -514,7 +603,7 @@ elif selected == "Risk Analysis":
     if submit_button:
         with st.spinner("Evaluating risk..."):
             try:
-                resp = requests.post(f"{API_URL}/api/risk/analyze", json={"supplier_name": supplier_name, "delivery_days": delivery_days, "required_delivery_days": required_delivery_days}, timeout=15)
+                resp = requests.post(f"{API_URL}/api/risk/analyze", json={"supplier_name": supplier_name, "delivery_days": delivery_days, "required_delivery_days": required_delivery_days}, timeout=90, headers=get_auth_headers())
                 if resp.status_code == 200:
                     data = resp.json()
                     st.error(f"Risk Level: {data.get('risk_level')}")
@@ -522,7 +611,7 @@ elif selected == "Risk Analysis":
                 else:
                     st.error("API error or quota exceeded. Please try again later.")
             except requests.exceptions.RequestException:
-                st.error("Connection timed out. Gemini API quota exceeded or backend unavailable.")
+                st.error("Connection timed out. NVIDIA API quota exceeded or backend unavailable.")
 
 elif selected == "Supply Chain Workflow":
     st.markdown("<h2 style='color: var(--text-color); font-weight: 700;'>Supply Chain Workflow Orchestration</h2>", unsafe_allow_html=True)
@@ -589,7 +678,7 @@ elif selected == "Supply Chain Workflow":
                         "product_name": product_name, "quantity": quantity,
                         "destination": destination, "required_delivery_days": required_delivery_days
                     }
-                    resp = requests.post(f"{API_URL}/optimize", json=payload, timeout=120)
+                    resp = requests.post(f"{API_URL}/optimize", json=payload, timeout=120, headers=get_auth_headers())
                     if resp.status_code == 200:
                         data = resp.json()
                         st.toast("Workflow Complete!", icon="✅")
@@ -610,17 +699,119 @@ elif selected == "Supply Chain Workflow":
                     else:
                         st.error("API error or quota exceeded. Please try again later.")
                 except requests.exceptions.RequestException:
-                    st.error("Connection timed out. Gemini API quota exceeded or backend unavailable.")
+                    st.error("Connection timed out. NVIDIA API quota exceeded or backend unavailable.")
 
 elif selected == "Analytics":
-    st.markdown("<h2>Analytics</h2>", unsafe_allow_html=True)
+    st.markdown("<h2>Analytics Dashboard</h2>", unsafe_allow_html=True)
     history = fetch_data("history")
     if history:
         df = pd.DataFrame(history)
+        
+        # Key Metrics
+        st.markdown("### Key Performance Indicators")
+        kpi1, kpi2, kpi3 = st.columns(3)
+        total_spend = df['total_cost'].sum() if 'total_cost' in df.columns else 0
+        total_orders = len(df)
+        avg_order_value = total_spend / total_orders if total_orders > 0 else 0
+        
+        kpi1.markdown(f"<div class='metric-card'><div class='metric-title'>Total Spend</div><div class='metric-value'>${total_spend:,.2f}</div></div>", unsafe_allow_html=True)
+        kpi2.markdown(f"<div class='metric-card'><div class='metric-title'>Total Transactions</div><div class='metric-value'>{total_orders}</div></div>", unsafe_allow_html=True)
+        kpi3.markdown(f"<div class='metric-card'><div class='metric-title'>Avg Order Value</div><div class='metric-value'>${avg_order_value:,.2f}</div></div>", unsafe_allow_html=True)
+        
+        # Charts
+        import plotly.express as px
+        st.markdown("### Spend Analysis")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            if 'selected_supplier' in df.columns and 'total_cost' in df.columns:
+                spend_by_supplier = df.groupby('selected_supplier')['total_cost'].sum().reset_index()
+                fig1 = px.pie(spend_by_supplier, values='total_cost', names='selected_supplier', title='Spend Distribution by Supplier', hole=0.4, color_discrete_sequence=px.colors.sequential.Teal)
+                fig1.update_layout(margin=dict(t=40, b=0, l=0, r=0))
+                st.plotly_chart(fig1, use_container_width=True)
+                
+        with col2:
+            if 'product_name' in df.columns and 'total_cost' in df.columns:
+                spend_by_product = df.groupby('product_name')['total_cost'].sum().reset_index().sort_values(by='total_cost', ascending=False)
+                fig2 = px.bar(spend_by_product, x='product_name', y='total_cost', title='Total Spend by Product', color='total_cost', color_continuous_scale='Teal')
+                fig2.update_layout(margin=dict(t=40, b=0, l=0, r=0))
+                st.plotly_chart(fig2, use_container_width=True)
+        
+        st.markdown("### Raw Data")
         st.dataframe(df, use_container_width=True)
         render_export_buttons(df, "analytics_report", "Analytics Report")
     else:
-        st.info("No analytics data available.")
+        st.info("No analytics data available. Run some workflows to generate data!")
+
+
+elif selected == "Admin Panel":
+    st.markdown("<h2>Admin Panel</h2>", unsafe_allow_html=True)
+    
+    if st.session_state.user['role'] != 'admin':
+        st.error("Access Denied. You must be an administrator to view this page.")
+    else:
+        st.markdown("### Create New User")
+        with st.form("create_user_form"):
+            new_username = st.text_input("Username")
+            new_password = st.text_input("Password", type="password")
+            new_role = st.selectbox("Role", ["user", "admin"])
+            new_org = st.text_input("Organization (Optional)")
+            submit = st.form_submit_button("Create User")
+            
+            if submit and new_username and new_password:
+                try:
+                    resp = requests.post(f"{API_URL}/api/admin/users", 
+                        json={"username": new_username, "password": new_password, "role": new_role, "organization": new_org},
+                        headers=get_auth_headers()
+                    )
+                    if resp.status_code == 200:
+                        st.success(f"User '{new_username}' created successfully!")
+                    else:
+                        st.error(f"Error creating user: {resp.json().get('detail')}")
+                except Exception as e:
+                    st.error(f"Connection error: {e}")
+
+        st.divider()
+        st.subheader("👥 Manage Existing Users")
+        users_resp = requests.get(f"{API_URL}/api/admin/users", headers=get_auth_headers())
+        if users_resp.status_code == 200:
+            users = users_resp.json()
+            if users:
+                user_df = pd.DataFrame(users)
+                st.dataframe(user_df[['id', 'username', 'role', 'organization']], hide_index=True)
+                
+                st.write("#### Edit / Delete User")
+                selected_user = st.selectbox("Select User to Manage", [u['username'] for u in users])
+                if selected_user:
+                    user_data = next(u for u in users if u['username'] == selected_user)
+                    with st.form("edit_user_form"):
+                        new_role = st.selectbox("Role", ["user", "admin"], index=0 if user_data['role']=='user' else 1)
+                        new_org = st.text_input("Organization", value=user_data['organization'] or "")
+                        
+                        col1, col2 = st.columns(2)
+                        update_btn = col1.form_submit_button("Update User")
+                        delete_btn = col2.form_submit_button("Delete User", type="primary")
+                        
+                        if update_btn:
+                            res = requests.put(f"{API_URL}/api/admin/users/{selected_user}", json={"role": new_role, "organization": new_org}, headers=get_auth_headers())
+                            if res.status_code == 200:
+                                st.success(f"User {selected_user} updated!")
+                                st.rerun()
+                            else:
+                                st.error(res.text)
+                                
+                        if delete_btn:
+                            if selected_user == "admin":
+                                st.error("Cannot delete root admin.")
+                            else:
+                                res = requests.delete(f"{API_URL}/api/admin/users/{selected_user}", headers=get_auth_headers())
+                                if res.status_code == 200:
+                                    st.success(f"User {selected_user} deleted!")
+                                    st.rerun()
+                                else:
+                                    st.error(res.text)
+                    
+
 
 elif selected == "Data Management":
     st.markdown("<h2>Data Management</h2>", unsafe_allow_html=True)
@@ -632,13 +823,15 @@ elif selected == "Data Management":
             if f and st.button(f"Upload {title}", key=f"btn_{key}"):
                 # Always save locally to the data folder
                 try:
-                    with open(f"data/{filename}.csv", "wb") as out_file:
+                    org = st.session_state.user.get('organization', 'System')
+                    os.makedirs(f"data/{org}", exist_ok=True)
+                    with open(f"data/{org}/{filename}.csv", "wb") as out_file:
                         out_file.write(f.getvalue())
                     
                     if endpoint:
                         # Sync to DB if endpoint exists
                         f.seek(0)
-                        resp = requests.post(f"{API_URL}/upload/{endpoint}", files={"file": (f.name, f.getvalue(), "text/csv")})
+                        resp = requests.post(f"{API_URL}/upload/{endpoint}", files={"file": (f.name, f.getvalue(), "text/csv")}, headers=get_auth_headers())
                         if resp.status_code == 200:
                             st.toast(f"✅ {title} uploaded to system and database.")
                         else:
@@ -676,20 +869,36 @@ elif selected == "Procurement Requests":
         submit_button = st.form_submit_button("Create Request")
         if submit_button and item_name:
             try:
-                df = pd.read_csv("data/procurement_requests.csv")
+                org = st.session_state.user.get('organization', 'System')
+                os.makedirs(f"data/{org}", exist_ok=True)
+                df = pd.read_csv(f"data/{org}/procurement_requests.csv")
                 new_id = f"PR-{len(df) + 201}"
                 new_row = pd.DataFrame([{"pr_id": new_id, "product_name": item_name, "quantity": quantity, "department": department, "status": "Pending"}])
                 df = pd.concat([df, new_row], ignore_index=True)
-                df.to_csv("data/procurement_requests.csv", index=False)
+                df.to_csv(f"data/{org}/procurement_requests.csv", index=False)
+                
+                # Automatically create a corresponding Pending Order for the Order Approval tab
+                order_payload = {
+                    "order_id": new_id.replace("PR-", "ORD-"),
+                    "product_name": item_name,
+                    "quantity": quantity,
+                    "supplier_name": "TBD (Pending Sourcing)",
+                    "total_cost": budget,
+                    "status": "Pending",
+                    "date": __import__('datetime').datetime.now().strftime("%Y-%m-%d")
+                }
+                requests.post(f"{API_URL}/api/orders", json=order_payload, headers=get_auth_headers())
+                
                 st.toast(f"✅ Procurement request {new_id} for {quantity}x {item_name} created successfully.")
             except Exception as e:
                 st.error(f"Error creating request: {e}")
 
     st.markdown("### Existing Requests")
     try:
-        df = pd.read_csv("data/procurement_requests.csv")
+        org = st.session_state.user.get('organization', 'System')
+        df = pd.read_csv(f"data/{org}/procurement_requests.csv")
         if df.empty:
-            st.info("No procurement requests found.")
+            st.info("No procurement requests found.", headers=get_auth_headers())
         else:
             st.dataframe(df, use_container_width=True)
             render_export_buttons(df, "procurement_requests", "Procurement Requests")
@@ -708,11 +917,13 @@ elif selected == "RFQ Management":
             target_price = st.number_input("Target Price", min_value=0.0, format="%.2f")
             if st.form_submit_button("Create RFQ") and product_name:
                 try:
-                    df = pd.read_csv("data/rfq.csv")
+                    org = st.session_state.user.get('organization', 'System')
+                    os.makedirs(f"data/{org}", exist_ok=True)
+                    df = pd.read_csv(f"data/{org}/rfq.csv")
                     new_id = f"RFQ-{len(df) + 101}"
                     new_row = pd.DataFrame([{"rfq_id": new_id, "product_name": product_name, "quantity": quantity, "target_price": target_price, "status": "Open"}])
                     df = pd.concat([df, new_row], ignore_index=True)
-                    df.to_csv("data/rfq.csv", index=False)
+                    df.to_csv(f"data/{org}/rfq.csv", index=False)
                     st.toast(f"✅ RFQ {new_id} created successfully.")
                 except Exception as e:
                     st.error(f"Error creating RFQ: {e}")
@@ -720,7 +931,8 @@ elif selected == "RFQ Management":
     with tab2:
         with st.form("send_rfq_form"):
             try:
-                rfq_df = pd.read_csv("data/rfq.csv")
+                org = st.session_state.user.get('organization', 'System')
+                rfq_df = pd.read_csv(f"data/{org}/rfq.csv")
                 open_rfqs = rfq_df[rfq_df['status'] == 'Open']['rfq_id'].tolist()
             except:
                 open_rfqs = []
@@ -731,18 +943,26 @@ elif selected == "RFQ Management":
             selected_rfq = st.selectbox("Select RFQ", open_rfqs if open_rfqs else ["No Open RFQs"], disabled=len(open_rfqs)==0)
             selected_suppliers = st.multiselect("Select Suppliers", supplier_names)
             
-            if st.form_submit_button("Send RFQ") and selected_rfq and selected_rfq != "No Open RFQs" and selected_suppliers:
-                try:
-                    rfq_df.loc[rfq_df['rfq_id'] == selected_rfq, 'status'] = 'Sent'
-                    rfq_df.to_csv("data/rfq.csv", index=False)
-                    st.toast(f"✅ {selected_rfq} sent to {len(selected_suppliers)} suppliers.")
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Error: {e}")
+            submit_rfq = st.form_submit_button("Send RFQ")
+            if submit_rfq:
+                if not selected_rfq or selected_rfq == "No Open RFQs":
+                    st.error("No valid RFQ selected.")
+                elif not selected_suppliers:
+                    st.error("Please select at least one supplier.")
+                else:
+                    try:
+                        rfq_df.loc[rfq_df['rfq_id'] == selected_rfq, 'status'] = 'Sent'
+                        org = st.session_state.user.get('organization', 'System')
+                        rfq_df.to_csv(f"data/{org}/rfq.csv", index=False)
+                        st.toast(f"✅ {selected_rfq} sent to {len(selected_suppliers)} suppliers.")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Error updating RFQ: {e}")
                 
     with tab3:
         try:
-            df = pd.read_csv("data/rfq.csv")
+            org = st.session_state.user.get('organization', 'System')
+            df = pd.read_csv(f"data/{org}/rfq.csv")
             if df.empty:
                 st.info("No RFQs found.")
             else:
@@ -754,9 +974,13 @@ elif selected == "RFQ Management":
 elif selected == "Order Monitoring":
     st.markdown("<h2>Order Monitoring</h2>", unsafe_allow_html=True)
     try:
-        df = pd.read_csv("data/orders.csv")
-        st.dataframe(df, use_container_width=True)
-        render_export_buttons(df, "orders", "Order Monitoring")
+        orders = fetch_data("api/orders")
+        if orders:
+            df = pd.DataFrame(orders)
+            st.dataframe(df, use_container_width=True)
+            render_export_buttons(df, "orders", "Order Monitoring")
+        else:
+            st.info("No data available.")
     except Exception as e:
         st.info("No data available.")
 
@@ -835,11 +1059,11 @@ elif selected == "Order Approval":
                         bcol1, bcol2 = st.columns(2)
                         with bcol1:
                             if st.button("Approve", key=f"app_{order.get('order_id')}", type="primary"):
-                                requests.put(f"{API_URL}/api/orders/{order.get('order_id')}/status", json={"status": "Approved"})
+                                requests.put(f"{API_URL}/api/orders/{order.get('order_id')}/status", json={"status": "Approved"}, headers=get_auth_headers())
                                 st.rerun()
                         with bcol2:
                             if st.button("Reject", key=f"rej_{order.get('order_id')}"):
-                                requests.put(f"{API_URL}/api/orders/{order.get('order_id')}/status", json={"status": "Rejected"})
+                                requests.put(f"{API_URL}/api/orders/{order.get('order_id')}/status", json={"status": "Rejected"}, headers=get_auth_headers())
                                 st.rerun()
                     st.markdown("---")
             else:
@@ -853,30 +1077,41 @@ elif selected == "Order Approval":
 elif selected == "Settings":
     st.markdown("<h2>Settings</h2>", unsafe_allow_html=True)
     
-    st.subheader("System Preferences")
-    
-    import os
-    config_dir = ".streamlit"
-    config_path = f"{config_dir}/config.toml"
-    current_theme = "System Default"
-    if os.path.exists(config_path):
-        with open(config_path, "r") as f:
-            content = f.read()
-            if 'base="light"' in content: current_theme = "Light"
-            elif 'base="dark"' in content: current_theme = "Dark"
+    st.subheader("My Profile")
+    if st.session_state.user:
+        with st.form("profile_form"):
+            st.text_input("Role (Read-Only)", value=st.session_state.user.get('role', 'user'), disabled=True)
+            st.text_input("Organization (Read-Only)", value=st.session_state.user.get('organization', 'System') or 'None', disabled=True)
             
-    themes = ["System Default", "Light", "Dark"]
-    theme_idx = themes.index(current_theme) if current_theme in themes else 0
-    theme = st.selectbox("Theme selector", themes, index=theme_idx)
-    
-    if theme != current_theme:
-        os.makedirs(config_dir, exist_ok=True)
-        if theme == "System Default":
-            if os.path.exists(config_path): os.remove(config_path)
-        else:
-            with open(config_path, "w") as f:
-                f.write(f'[theme]\nbase="{theme.lower()}"\nprimaryColor="#F97316"\n')
-        st.rerun()
+            new_username = st.text_input("Username", value=st.session_state.user.get('username', ''))
+            new_password = st.text_input("New Password (leave blank to keep current)", type="password")
+            
+            if st.form_submit_button("Update Profile"):
+                payload = {}
+                if new_username and new_username != st.session_state.user.get('username', ''):
+                    payload["username"] = new_username
+                if new_password:
+                    payload["password"] = new_password
+                    
+                if payload:
+                    try:
+                        resp = requests.put(f"{API_URL}/api/users/me", json=payload, headers=get_auth_headers())
+                        if resp.status_code == 200:
+                            data = resp.json()
+                            st.session_state.user = data["user"]
+                            st.session_state.token = data["access_token"]
+                            st.success("Profile updated securely! Your active session has been seamlessly refreshed.")
+                        elif resp.status_code == 400 and "already taken" in resp.text:
+                            st.error("That username is already taken by someone else.")
+                        else:
+                            st.error(f"Failed to update profile: {resp.text}")
+                    except Exception as e:
+                        st.error(f"Error connecting to server: {e}")
+                else:
+                    st.info("No changes were made.")
+                    
+    st.markdown("---")
+    st.subheader("System Preferences")
 
     st.markdown("---")
     st.subheader("Performance & Cache")

@@ -20,7 +20,7 @@ def run_coordinator_agent(inventory_data: dict, supplier_data: dict, risk_data: 
         goal='Combine all departmental outputs into a final cohesive executive summary.',
         backstory='You are the head of the supply chain. You synthesize reports from all departments into a clear summary for stakeholders.',
         llm=llm,
-        verbose=True
+        max_iter=2, max_execution_time=20, verbose=True
     )
     
     context = (f"Inventory: {json.dumps(inventory_data)}\n"
@@ -37,7 +37,7 @@ def run_coordinator_agent(inventory_data: dict, supplier_data: dict, risk_data: 
         agent=agent
     )
     
-    crew = Crew(agents=[agent], tasks=[task], verbose=False)
+    crew = Crew(agents=[agent], tasks=[task], max_iter=2, max_execution_time=20, verbose=False)
     
     try:
         result = str(crew.kickoff())
@@ -48,7 +48,7 @@ def run_coordinator_agent(inventory_data: dict, supplier_data: dict, risk_data: 
     except Exception as e:
         error_msg = str(e)
         if "429" in error_msg or "quota" in error_msg.lower():
-            summary = "Gemini API quota exceeded. Please try again later. Supply chain coordination summary unavailable."
+            summary = "NVIDIA API quota exceeded. Please try again later. Supply chain coordination summary unavailable."
         else:
             summary = f"AI Analysis temporarily unavailable: {error_msg}. Coordination summary unavailable."
         return {"procurement_summary": summary}

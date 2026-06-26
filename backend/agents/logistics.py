@@ -20,7 +20,7 @@ def run_logistics_agent(routes_data: list, destination: str) -> dict:
         goal='Calculate the best delivery route minimizing distance and delivery time.',
         backstory='You are a logistics expert responsible for routing shipments efficiently to save costs and time.',
         llm=llm,
-        verbose=True
+        max_iter=2, max_execution_time=20, verbose=True
     )
     
     routes_str = "\n".join([f"- {r['name']}: {r['distance_km']} km" for r in routes_data])
@@ -34,7 +34,7 @@ def run_logistics_agent(routes_data: list, destination: str) -> dict:
         agent=agent
     )
     
-    crew = Crew(agents=[agent], tasks=[task], verbose=False)
+    crew = Crew(agents=[agent], tasks=[task], max_iter=2, max_execution_time=20, verbose=False)
     
     try:
         result = str(crew.kickoff())
@@ -45,7 +45,7 @@ def run_logistics_agent(routes_data: list, destination: str) -> dict:
     except Exception as e:
         error_msg = str(e)
         if "429" in error_msg or "quota" in error_msg.lower():
-            analysis = "Gemini API quota exceeded. Please try again later. Route cannot be optimized."
+            analysis = "NVIDIA API quota exceeded. Please try again later. Route cannot be optimized."
         else:
             analysis = f"AI Analysis temporarily unavailable: {error_msg}. Route cannot be optimized."
         return {"recommended_route_name": "Fallback Route", "distance_km": 0.0, "analysis": analysis}

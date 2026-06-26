@@ -31,7 +31,7 @@ def run_risk_agent(supplier_name: str, delivery_days: int, required_delivery_day
         goal='Analyze potential risks associated with the selected supplier and delivery timeline.',
         backstory='You are a supply chain risk analyst. You detect potential delays and violations of deadlines.',
         llm=llm,
-        verbose=True
+        max_iter=2, max_execution_time=20, verbose=True
     )
     
     task = Task(
@@ -43,7 +43,7 @@ def run_risk_agent(supplier_name: str, delivery_days: int, required_delivery_day
         agent=agent
     )
     
-    crew = Crew(agents=[agent], tasks=[task], verbose=False)
+    crew = Crew(agents=[agent], tasks=[task], max_iter=2, max_execution_time=20, verbose=False)
     
     try:
         result = str(crew.kickoff())
@@ -59,7 +59,7 @@ def run_risk_agent(supplier_name: str, delivery_days: int, required_delivery_day
     except Exception as e:
         error_msg = str(e)
         if "429" in error_msg or "quota" in error_msg.lower():
-            reasoning = "Gemini API quota exceeded. Please try again later. Risk cannot be calculated."
+            reasoning = "NVIDIA API quota exceeded. Please try again later. Risk cannot be calculated."
         else:
             reasoning = f"AI Analysis temporarily unavailable: {error_msg}. Risk cannot be calculated."
         

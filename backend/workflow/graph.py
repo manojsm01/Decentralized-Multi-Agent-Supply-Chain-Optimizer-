@@ -10,7 +10,6 @@ from backend.agents.coordinator import run_coordinator_agent
 import time
 
 def inventory_node(state: GraphState):
-    time.sleep(2)
     result = run_inventory_agent(
         product_name=state["product_name"],
         required_quantity=state["quantity"],
@@ -19,7 +18,6 @@ def inventory_node(state: GraphState):
     return {"inventory_result": result}
 
 def supplier_node(state: GraphState):
-    time.sleep(2)
     # If inventory says no procurement needed, we might still proceed for the sake of the project flow, 
     # but let's assume we always evaluate suppliers for the requested quantity.
     result = run_supplier_agent(
@@ -29,7 +27,6 @@ def supplier_node(state: GraphState):
     return {"supplier_result": result}
 
 def risk_node(state: GraphState):
-    time.sleep(2)
     supplier_info = state.get("supplier_result", {})
     supplier_name = supplier_info.get("selected_supplier_name", "Unknown")
     delivery_days = supplier_info.get("delivery_days", 0)
@@ -42,7 +39,6 @@ def risk_node(state: GraphState):
     return {"risk_result": result}
 
 def logistics_node(state: GraphState):
-    time.sleep(2)
     result = run_logistics_agent(
         routes_data=state["routes_data"],
         destination=state["destination"]
@@ -50,7 +46,6 @@ def logistics_node(state: GraphState):
     return {"logistics_result": result}
 
 def procurement_node(state: GraphState):
-    time.sleep(2)
     inv_info = state.get("inventory_result", {})
     quantity_to_order = inv_info.get("quantity_to_order", state["quantity"])
     
@@ -75,7 +70,6 @@ def procurement_node(state: GraphState):
     return {"procurement_result": result}
 
 def coordinator_node(state: GraphState):
-    time.sleep(2)
     result = run_coordinator_agent(
         inventory_data=state.get("inventory_result", {}),
         supplier_data=state.get("supplier_result", {}),

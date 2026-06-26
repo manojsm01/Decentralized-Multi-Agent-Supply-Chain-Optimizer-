@@ -45,3 +45,9 @@ supply_chain.db
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Supply Chain Optimizer Specifics
+/data/*
+!/data/System/
+*.log
+.secrets

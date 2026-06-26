@@ -20,7 +20,7 @@ def run_supplier_agent(suppliers_data: list, required_delivery_days: int) -> dic
         goal='Select the optimal supplier based on price, delivery days, and rating.',
         backstory='You are a strategic sourcing expert who finds the best suppliers considering cost, speed, and reliability.',
         llm=llm,
-        verbose=True
+        max_iter=2, max_execution_time=20, verbose=True
     )
     
     suppliers_str = "\n".join([f"- {s['name']}: Price=${s['price']}, Delivery={s['delivery_days']} days, Rating={s['rating']}" for s in suppliers_data])
@@ -34,7 +34,7 @@ def run_supplier_agent(suppliers_data: list, required_delivery_days: int) -> dic
         agent=agent
     )
     
-    crew = Crew(agents=[agent], tasks=[task], verbose=False)
+    crew = Crew(agents=[agent], tasks=[task], max_iter=2, max_execution_time=20, verbose=False)
     
     try:
         result = str(crew.kickoff())
@@ -45,7 +45,7 @@ def run_supplier_agent(suppliers_data: list, required_delivery_days: int) -> dic
     except Exception as e:
         error_msg = str(e)
         if "429" in error_msg or "quota" in error_msg.lower():
-            analysis = "Gemini API quota exceeded. Please try again later. Supplier data unavailable."
+            analysis = "NVIDIA API quota exceeded. Please try again later. Supplier data unavailable."
         else:
             analysis = f"AI Analysis temporarily unavailable: {error_msg}. Supplier data unavailable."
         return {"selected_supplier_name": "Fallback Supplier", "price": 0.0, "delivery_days": 0, "rating": 0.0, "analysis": analysis}

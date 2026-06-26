@@ -2,6 +2,37 @@ from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
 
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    username: Optional[str] = None
+
+class UserUpdate(BaseModel):
+    role: Optional[str] = None
+    organization: Optional[str] = None
+
+class UserProfileUpdate(BaseModel):
+    username: Optional[str] = None
+    password: Optional[str] = None
+
+class UserProfileUpdateResponse(BaseModel):
+    user: "UserResponse"
+    access_token: str
+
+class UserCreate(BaseModel):
+    username: str
+    password: str
+    role: str = "user"
+    organization: Optional[str] = None
+
+class UserResponse(BaseModel):
+    id: int
+    username: str
+    role: str
+    organization: Optional[str] = None
+
 class OptimizationRequest(BaseModel):
     product_name: str
     quantity: int
@@ -121,6 +152,15 @@ class RecommendationHistorySchema(BaseModel):
 
     class Config:
         from_attributes = True
+
+class OrderCreate(BaseModel):
+    order_id: str
+    product_name: str
+    quantity: int
+    supplier_name: str
+    total_cost: float
+    status: str
+    date: str
 
 class OrderSchema(BaseModel):
     id: int

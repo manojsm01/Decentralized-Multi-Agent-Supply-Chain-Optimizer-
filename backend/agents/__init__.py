@@ -1,17 +1,18 @@
 import os
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_nvidia_ai_endpoints import ChatNVIDIA
 from dotenv import load_dotenv
 
 load_dotenv()
 
 def get_llm():
-    api_key = os.getenv("GEMINI_API_KEY")
+    api_key = os.getenv("NVIDIA_API_KEY")
     if not api_key:
-        raise ValueError("GEMINI_API_KEY environment variable not set")
+        raise ValueError("NVIDIA_API_KEY environment variable not set")
     
-    return ChatGoogleGenerativeAI(
-        model="gemini-2.5-flash-lite",
-        google_api_key=api_key,
+    return ChatNVIDIA(
+        model="meta/llama-3.1-70b-instruct",
+        nvidia_api_key=api_key,
         temperature=0.2,
-        max_retries=5
+        max_retries=0,
+        timeout=10
     )

@@ -3,8 +3,17 @@ import datetime
 
 from .database import Base
 
+class User(Base):
+    __tablename__ = "users"
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, index=True)
+    hashed_password = Column(String)
+    role = Column(String, default="user") # 'admin' or 'user'
+    organization = Column(String, nullable=True)
+
 class Supplier(Base):
     __tablename__ = "suppliers"
+    organization = Column(String, default="System")
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
@@ -14,6 +23,7 @@ class Supplier(Base):
 
 class Inventory(Base):
     __tablename__ = "inventory"
+    organization = Column(String, default="System")
 
     id = Column(Integer, primary_key=True, index=True)
     product_name = Column(String, index=True)
@@ -21,6 +31,7 @@ class Inventory(Base):
 
 class Route(Base):
     __tablename__ = "routes"
+    organization = Column(String, default="System")
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
@@ -28,6 +39,7 @@ class Route(Base):
 
 class ProcurementHistory(Base):
     __tablename__ = "procurement_history"
+    organization = Column(String, default="System")
 
     id = Column(Integer, primary_key=True, index=True)
     product_name = Column(String, index=True)
@@ -38,6 +50,7 @@ class ProcurementHistory(Base):
 
 class RecommendationHistory(Base):
     __tablename__ = "recommendation_history"
+    organization = Column(String, default="System")
 
     id = Column(Integer, primary_key=True, index=True)
     agent_name = Column(String, index=True)
@@ -46,6 +59,7 @@ class RecommendationHistory(Base):
 
 class Order(Base):
     __tablename__ = "orders"
+    organization = Column(String, default="System")
 
     id = Column(Integer, primary_key=True, index=True)
     order_id = Column(String, index=True)
@@ -58,6 +72,7 @@ class Order(Base):
 
 class RFQ(Base):
     __tablename__ = "rfqs"
+    organization = Column(String, default="System")
 
     id = Column(Integer, primary_key=True, index=True)
     rfq_id = Column(String, index=True)
@@ -68,6 +83,7 @@ class RFQ(Base):
 
 class ProcurementRequest(Base):
     __tablename__ = "procurement_requests_table"
+    organization = Column(String, default="System")
 
     id = Column(Integer, primary_key=True, index=True)
     pr_id = Column(String, index=True)

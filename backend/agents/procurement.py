@@ -20,7 +20,7 @@ def run_procurement_agent(product_name: str, quantity_to_order: int, supplier_na
         goal='Generate final purchase recommendations and calculate total costs.',
         backstory='You are a procurement officer who authorizes purchases and ensures all financial calculations are accurate.',
         llm=llm,
-        verbose=True
+        max_iter=2, max_execution_time=20, verbose=True
     )
     
     task = Task(
@@ -33,7 +33,7 @@ def run_procurement_agent(product_name: str, quantity_to_order: int, supplier_na
         agent=agent
     )
     
-    crew = Crew(agents=[agent], tasks=[task], verbose=False)
+    crew = Crew(agents=[agent], tasks=[task], max_iter=2, max_execution_time=20, verbose=False)
     
     total_cost = quantity_to_order * supplier_price
     
@@ -46,7 +46,7 @@ def run_procurement_agent(product_name: str, quantity_to_order: int, supplier_na
     except Exception as e:
         error_msg = str(e)
         if "429" in error_msg or "quota" in error_msg.lower():
-            analysis = "Gemini API quota exceeded. Please try again later. Mathematical fallback applied."
+            analysis = "NVIDIA API quota exceeded. Please try again later. Mathematical fallback applied."
         else:
             analysis = f"AI Analysis temporarily unavailable: {error_msg}. Mathematical fallback applied."
         return {"total_cost": total_cost, "recommendation": "Proceed (Fallback)", "analysis": analysis}

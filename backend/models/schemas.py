@@ -177,3 +177,14 @@ class OrderSchema(BaseModel):
 
 class OrderStatusUpdateRequest(BaseModel):
     status: str
+
+class NegotiationRequest(BaseModel):
+    product_name: str
+    quantity: int
+    supplier_name: str
+    current_price: float
+
+class NegotiationResponse(BaseModel):
+    negotiated_price: float
+    discount_percentage: float
+    negotiation_summary: str

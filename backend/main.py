@@ -188,6 +188,7 @@ from backend.agents.risk import run_risk_agent
 from backend.agents.logistics import run_logistics_agent
 from backend.agents.procurement import run_procurement_agent
 from backend.agents.forecast import run_forecast_agent
+from backend.agents.negotiator import run_negotiator_agent
 import json
 
 @app.post("/api/forecast", response_model=schemas.ForecastResponse)
@@ -234,6 +235,13 @@ def api_procurement_generate(request: schemas.ProcurementRequest, db: Session = 
     res = run_procurement_agent(request.product_name, request.quantity_to_order, request.supplier_name, request.supplier_price, request.risk_level, request.route_name)
     rec = json.dumps(res)
     crud.create_recommendation_history(db, "Procurement", rec, current_user.organization)
+    return res
+
+@app.post("/api/negotiate", response_model=schemas.NegotiationResponse)
+def api_negotiate(request: schemas.NegotiationRequest, db: Session = Depends(get_db), current_user = Depends(auth.get_current_user)):
+    res = run_negotiator_agent(request.product_name, request.quantity, request.supplier_name, request.current_price)
+    rec = json.dumps(res)
+    crud.create_recommendation_history(db, "Negotiator", rec, current_user.organization)
     return res
 
 @app.get("/api/recommendations", response_model=List[schemas.RecommendationHistorySchema])

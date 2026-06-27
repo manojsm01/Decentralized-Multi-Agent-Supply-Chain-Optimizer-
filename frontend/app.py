@@ -155,22 +155,14 @@ st.markdown("""
     border-radius: 12px;
     font-weight: 600;
     transition: all 0.3s ease;
-    background: rgba(255,255,255,0.08) !important;
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    color: #FFFFFF !important;
-    border: 1px solid rgba(255,255,255,0.15) !important;
-}
-.stButton>button[kind="primary"] {
     background: linear-gradient(135deg, #00D4FF 0%, #0077FF 100%) !important;
     color: white !important;
     border: none !important;
-    box-shadow: 0 4px 15px rgba(0, 212, 255, 0.4);
+    box-shadow: 0 4px 15px rgba(0, 212, 255, 0.2);
 }
 .stButton>button:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.4);
-    border: 1px solid rgba(255,255,255,0.3) !important;
+    box-shadow: 0 8px 25px rgba(0, 212, 255, 0.5);
 }
 </style>
 """, unsafe_allow_html=True)
@@ -212,6 +204,7 @@ with st.sidebar:
         "📦 Inventory Monitoring", 
         "🚚 Route Optimization", 
         "⚠️ Risk Analysis",
+        "🤝 AI Negotiator",
         "---",
         "📋 Procurement Requests", 
         "📨 RFQ Management", 
@@ -240,6 +233,7 @@ with st.sidebar:
         "📦 Inventory Monitoring": "Inventory Monitoring",
         "🚚 Route Optimization": "Route Optimization",
         "⚠️ Risk Analysis": "Risk Analysis",
+        "🤝 AI Negotiator": "AI Negotiator",
         "📋 Procurement Requests": "Procurement Requests",
         "📨 RFQ Management": "RFQ Management",
         "⚖️ Quotation Comparison": "Quotation Comparison",
@@ -669,6 +663,43 @@ elif selected == "Risk Analysis":
                     data = resp.json()
                     st.error(f"Risk Level: {data.get('risk_level')}")
                     st.warning(data.get("reasoning"))
+                else:
+                    st.error("API error or quota exceeded. Please try again later.")
+            except requests.exceptions.RequestException:
+                st.error("Connection timed out. NVIDIA API quota exceeded or backend unavailable.")
+
+elif selected == "AI Negotiator":
+    st.markdown("<h2>AI Contract Negotiator (Negotiation Agent)</h2>", unsafe_allow_html=True)
+    st.markdown("Simulate an AI-driven negotiation with a supplier to secure a bulk discount.", unsafe_allow_html=True)
+    
+    with st.form("negotiator_form"):
+        product_name = st.text_input("Product Name", "Industrial Laptop")
+        quantity = st.number_input("Bulk Quantity", min_value=100, value=5000, step=100)
+        supplier_name = st.text_input("Supplier Name", "GlobalTech Supplies")
+        current_price = st.number_input("Current Unit Price ($)", min_value=1.0, value=1200.0, step=10.0)
+        submit_button = st.form_submit_button("Start AI Negotiation")
+        
+    if submit_button:
+        with st.spinner("AI Negotiator is bargaining with the supplier..."):
+            try:
+                resp = requests.post(f"{API_URL}/api/negotiate", json={
+                    "product_name": product_name,
+                    "quantity": quantity,
+                    "supplier_name": supplier_name,
+                    "current_price": current_price
+                }, timeout=90, headers=get_auth_headers())
+                if resp.status_code == 200:
+                    data = resp.json()
+                    st.success("Negotiation Complete!")
+                    c1, c2, c3 = st.columns(3)
+                    c1.metric("Original Price", f"${current_price:,.2f}")
+                    c2.metric("Negotiated Price", f"${data.get('negotiated_price'):,.2f}", delta=f"-{data.get('discount_percentage'):.1f}%", delta_color="inverse")
+                    
+                    savings = (current_price - data.get('negotiated_price')) * quantity
+                    c3.metric("Total Savings", f"${savings:,.2f}")
+                    
+                    st.markdown("### Negotiation Transcript")
+                    st.info(data.get("negotiation_summary"))
                 else:
                     st.error("API error or quota exceeded. Please try again later.")
             except requests.exceptions.RequestException:
